@@ -16,29 +16,20 @@ class Connectife extends Component
 {
 
     /**
-     * @var string Can be found under „Integration” menu of „Settings” section
-     */
-    public $clientId;
-
-    /**
      * @var string Random pice of string
      */
     public $apiKey;
-
-    /**
-     * @var string Can be found under „Integration” section in application menu
-     */
-    public $apiSecret;
-
+    
     /**
      * @var string
+     * https://api.connectif.cloud/
      */
     public $endpoint;
     
     /**
-     * @var string
+     * @var string metodo della chiamata POST - GET - DELETE - PATCH
      */
-    public $owner;
+    public $method;
 
 
     /**
@@ -46,23 +37,17 @@ class Connectife extends Component
      */
     public function init()
     {
-        if (!$this->clientId) {
-            throw new InvalidConfigException('$clientId not set');
-        }
+        
 
         if (!$this->apiKey) {
             throw new InvalidConfigException('$apiKey not set');
-        }
-
-        if (!$this->apiSecret) {
-            throw new InvalidConfigException('$apiSecret not set');
         }
 
         if (!$this->endpoint) {
             throw new InvalidConfigException('$endpoint not set');
         }
         
-        if (!$this->owner) {
+        if (!$this->method) {
             throw new InvalidConfigException('$owner not set');
         }
 
@@ -70,46 +55,48 @@ class Connectife extends Component
     }
 
     /**
-     * Call SALESmanago function
+     * Call Connectife function
      * @param string $call Name of API function to call
      * @param array $data
      * @return \stdClass Connectife response
      */
     public function call($call, $data)
     {
-        $data = array_merge(
-            array(
-                'clientId' => $this->clientId,
-                'apiKey' => $this->apiKey,
-                'owner' => $this->owner,
-                'requestTime' => time(),
-                'sha' => sha1($this->apiKey . $this->clientId . $this->apiSecret),
-            ),
-            $data
-        );
+        // $data = array_merge(
+        //     array(
+        //         'apiKey' => $this->apiKey,
+        //         'owner' => $this->owner,
+        //         'requestTime' => time(),
+        //         'sha' => sha1($this->apiKey . $this->clientId . $this->apiSecret),
+        //     ),
+        //     $data
+        // );
        
         $json = json_encode($data);
         //echo $json;
         
-        $result = $this->curl($this->endpoint . '/api/' . $call, $json);
+        $result = $this->curl($this->endpoint.$call, $json, $method);
         return json_decode($result);
     }
 
     /**
      * Do request by CURL
-     * @param $url
+     * @param $url ex: https://api.connectif.cloud/purchases/
      * @param $data
+     * @param $method
      * @return mixed
      */
-    private function curl($url, $data)
+    private function curl($url, $data, $method = 'POST')
     {
         $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'Accept: application/json, application/json',
                 'Content-Type: application/json;charset=UTF-8',
+                'Authorization: apiKey '.$this->apiKey,
+                'data-raw '.$data
                 //'Content-Length: ' . strlen($data)
             )
         );
