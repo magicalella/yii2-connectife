@@ -31,8 +31,8 @@
      // ...
      'connectife' => [
          'class' => 'magicalella\connectife\Connectife',
-         'apiKey' => 'xxxxxx',
-         'endpoint' => 'xxxxxx',
+         'apiKey' => 'API KEY Connectife',
+         'endpoint' => 'ERL API Connectife',
          'method' => 'POST'
      ],
  ]

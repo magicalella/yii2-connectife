@@ -11,7 +11,7 @@ use yii\base\Exception;
  * Connectife component
  * @package magicalella\connectife
  *
- * @author Mariusz Stróż <info@inwave.pl>
+ * @author Raffaella Lollini
  */
 class Connectife extends Component
 {
