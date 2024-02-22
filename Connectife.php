@@ -62,9 +62,9 @@ class Connectife extends Component
      * Call Connectife function
      * @param string $call Name of API function to call
      * @param array $data
-     * @return \stdClass Connectife response
+     * @return \stdClass Connectife response []
      */
-    public function call($call, $data)
+    public function call($call, $method, $data = [])
     {
         // $data = array_merge(
         //     array(
