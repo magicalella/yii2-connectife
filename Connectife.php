@@ -62,7 +62,16 @@ class Connectife extends Component
      * Call Connectife function
      * @param string $call Name of API function to call
      * @param array $data
-     * @return \stdClass Connectife response []
+     * @return response []
+     *      status 0/1 success o error
+     *      data dati della risposta formato object
+     *      error eventuali errori di chiamata 
+     *      code codice della risposta es 200 o 404
+     *      header in header 
+     *              X-RateLimit-Limit: 100
+     *              X-RateLimit-Remaining: 98
+     *              X-RateLimit-Reset: 1580919168
+     *              da considerare per gestire il limite delle chiamate
      */
     public function call($call, $method, $data = [])
     {
@@ -79,9 +88,10 @@ class Connectife extends Component
         $json = json_encode($data);
         //echo $json;
         
-        $result = $this->curl($this->endpoint.$call, $json, $method);
-        
-        return json_decode($result);
+        $response = $this->curl($this->endpoint.$call, $json, $method);
+        $response['data'] = json_decode($response['data']);
+        $response['header'] = $this->HeaderToArray($response['header']);
+        return $response;
     }
 
     /**
@@ -89,8 +99,12 @@ class Connectife extends Component
      * @param $url ex: https://api.connectif.cloud/purchases/
      * @param $data
      * @param $method
-     * @return mixed
-     * in header 
+     * @return response []
+     *      status 0/1 success o error
+     *      data dati della risposta formato json
+     *      error eventuali errori di chiamata 
+     *      code codice della risposta es 200 o 404
+     *      header in header 
      * X-RateLimit-Limit: 100
      * X-RateLimit-Remaining: 98
      * X-RateLimit-Reset: 1580919168
@@ -98,10 +112,13 @@ class Connectife extends Component
      */
     private function curl($url, $data, $method = 'POST')
     {
+        $response = [];
+        $status = self::STATUS_SUCCESS;
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'Accept: application/json, application/json',
                 'Content-Type: application/json;charset=UTF-8',
@@ -110,11 +127,30 @@ class Connectife extends Component
                 //'Content-Length: ' . strlen($data)
             )
         );
+        $data = curl_exec($ch);
+        $curl_info = curl_getinfo($ch);
+        $error = curl_error($ch);
+        if($error){
+            $status = self::STATUS_ERROR;
+        }
 
-        return curl_exec($ch);
+        $header_size = $curl_info['header_size'];
+        $header = substr($data, 0, $header_size);
+        $body = substr($data, $header_size);
+        
+        $response['status'] = $status;
+        $response['data'] = $body;//dati
+        $response['error'] = $error;//eventuali errori
+        $response['code'] = $curl_info['http_code'];//codice restituito
+        $response['header'] = $header;//header 
+        
+        curl_close($ch);
+        
+        return $response;
     }
     
     /**
+    * Inutile tanto nel data non esiste code
      * Take the status code and throw an exception if the server didn't return 200 or 201 code
      * <p>Unique parameter must take : <br><br>
      * 'status_code' => Status code of an HTTP return<br>
@@ -138,13 +174,14 @@ class Connectife extends Component
         $error_message = '';
         $title = '';
         $detail = '';
-        $array_response = json_decode($response);
-        if(key_exists('status', $array_response)){
-            if($array_response['status'] == '400'){
+        
+        if(key_exists('code', $response)){
+            if($response['code'] == '404'){
                 $title = $array_response['title'];
                 $detail = $array_response['detail'];
             }
         }
+        $array_response = json_decode($response);
         switch ($array_response['code']) {
             case '200':
             case '201':
@@ -166,6 +203,37 @@ class Connectife extends Component
             $error_label = 'This call to Connectife failed and returned an HTTP status of %d. That means: %s.';
             throw new ConnectifeException(sprintf($error_label, $request['status_code'], $error_message));
         }
+    }
+
+    /**
+    *trasforma stringa HEADER del CURL in [] mappo solo i campi che mi servono :
+    *              X-RateLimit-Limit: 100
+    *              X-RateLimit-Remaining: 98
+    *              X-RateLimit-Reset: 1580919168
+    * 
+    * @parmas stringa header 
+    * return []
+     */
+    protected function HeaderToArray($header){
+        $return = [];
+        $array_header = explode("\n",$header);
+        if(!empty($array_header)){
+            foreach($array_header as $val){
+                $array_val = explode(':',$val);
+
+                if(!empty($array_val)){
+                    switch($array_val[0]){
+                        case 'X-RateLimit-Limit':
+                        case 'X-RateLimit-Remaining':
+                        case 'X-RateLimit-Reset':
+                            $chiave = str_replace(['X','-'], '', $array_val[0]);
+                            $return[$chiave] = $array_val[1];
+                        break;
+}
+                }
+            }
+        }
+        return $return;
     }
 
 
