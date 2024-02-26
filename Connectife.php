@@ -84,10 +84,8 @@ class Connectife extends Component
         //     ),
         //     $data
         // );
-       
         $json = json_encode($data);
-        //echo $json;
-        
+        print_r($json);
         $response = $this->curl($this->endpoint.$call, $json, $method);
         $response['data'] = json_decode($response['data']);
         $response['header'] = $this->HeaderToArray($response['header']);
@@ -122,8 +120,7 @@ class Connectife extends Component
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'Accept: application/json, application/json',
                 'Content-Type: application/json;charset=UTF-8',
-                'Authorization: apiKey '.$this->apiKey,
-                'data-raw '.$data
+                'Authorization: apiKey '.$this->apiKey
                 //'Content-Length: ' . strlen($data)
             )
         );
