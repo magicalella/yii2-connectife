@@ -85,10 +85,11 @@ class Connectife extends Component
         //     $data
         // );
         $json = json_encode($data);
-        print_r($json);
+        //print_r($json);
         $response = $this->curl($this->endpoint.$call, $json, $method);
         $response['data'] = json_decode($response['data']);
         $response['header'] = $this->HeaderToArray($response['header']);
+        print_r($response);
         return $response;
     }
 
